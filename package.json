@@ -1,0 +1,42 @@
+{
+  "name": "koishi-plugin-minecraft-command",
+  "description": "Execute Minecraft server commands from chat platforms via koishi-plugin-minecraft-adapter",
+  "version": "1.0.0",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "license": "MIT",
+  "author": "johntime2005",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "koishi": "^4.17.9"
+  },
+  "devDependencies": {
+    "koishi": "^4.17.9",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "keywords": [
+    "koishi",
+    "plugin",
+    "minecraft",
+    "command",
+    "rcon",
+    "mc",
+    "game"
+  ],
+  "koishi": {
+    "description": {
+      "en": "Execute Minecraft server commands from chat platforms, works with minecraft-adapter",
+      "zh": "通过聊天平台执行 Minecraft 服务器命令，与 minecraft-adapter 联动"
+    }
+  }
+}

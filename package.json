@@ -5,10 +5,19 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
-    "lib"
+    "lib",
+    "README.md"
   ],
   "license": "MIT",
   "author": "johntime2005",
+  "homepage": "https://github.com/johntime2005/koishi-plugin-minecraft-command",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johntime2005/koishi-plugin-minecraft-command.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johntime2005/koishi-plugin-minecraft-command/issues"
+  },
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
@@ -31,12 +40,21 @@
     "command",
     "rcon",
     "mc",
-    "game"
+    "game",
+    "server",
+    "管理",
+    "queqiao",
+    "鹊桥"
   ],
   "koishi": {
     "description": {
       "en": "Execute Minecraft server commands from chat platforms, works with minecraft-adapter",
       "zh": "通过聊天平台执行 Minecraft 服务器命令，与 minecraft-adapter 联动"
+    },
+    "service": {
+      "required": [
+        "adapter"
+      ]
     }
   }
 }

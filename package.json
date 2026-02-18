@@ -51,6 +51,15 @@
       "en": "Execute Minecraft server commands from chat platforms, works with minecraft-adapter",
       "zh": "通过聊天平台执行 Minecraft 服务器命令，与 minecraft-adapter 联动"
     },
+    "category": "gametool",
+    "public": [
+      "botId",
+      "allowedChannels",
+      "allowedUsers",
+      "adminUsers",
+      "adminAuthority",
+      "userAuthority"
+    ],
     "service": {
       "required": [
         "adapter"

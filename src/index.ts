@@ -15,32 +15,20 @@ function hasExecuteCommand(bot: Bot): bot is ExecutableBot {
 
 export interface Config {
   botId: string
-  allowedChannels: string[]
-  allowedUsers: string[]
-  adminUsers: string[]
-  adminAuthority: number
   userAuthority: number
+  adminAuthority: number
 }
 
 export const Config: Schema<Config> = Schema.object({
   botId: Schema.string()
     .description('指定 Minecraft Bot ID（selfId），留空则自动选择第一个可用的 Minecraft Bot')
     .default(''),
-  allowedChannels: Schema.array(Schema.string())
-    .description('允许执行命令的频道/群组 ID 列表（留空则不限制频道）')
-    .default([]),
-  allowedUsers: Schema.array(Schema.string())
-    .description('允许执行普通命令的用户 ID 列表（留空则不限制用户）')
-    .default([]),
-  adminUsers: Schema.array(Schema.string())
-    .description('允许执行管理命令的用户 ID 列表（mc.cmd / mc.tp / mc.give / mc.weather / mc.time）')
-    .default([]),
-  adminAuthority: Schema.number()
-    .description('管理命令所需的 Koishi authority 等级（与 adminUsers 为「或」关系，满足其一即可）')
-    .default(3),
   userAuthority: Schema.number()
-    .description('普通命令所需的 Koishi authority 等级')
+    .description('普通命令（mc.list / mc.say）所需的 Koishi 用户权限等级')
     .default(1),
+  adminAuthority: Schema.number()
+    .description('管理命令（mc.tp / mc.give / mc.weather / mc.time / mc.cmd）所需的 Koishi 用户权限等级')
+    .default(3),
 })
 
 export function apply(ctx: Context, config: Config) {
@@ -71,55 +59,13 @@ export function apply(ctx: Context, config: Config) {
     return await bot.executeCommand(command)
   }
 
-  function extractAuthority(user: unknown): number {
-    if (user != null && typeof user === 'object' && 'authority' in user) {
-      return typeof user.authority === 'number' ? user.authority : 0
-    }
-    return 0
-  }
-
-  function checkPermission(
-    channelId: string | undefined,
-    userId: string | undefined,
-    authority: number,
-    requireAdmin: boolean,
-  ): string | undefined {
-    if (config.allowedChannels.length > 0) {
-      if (!channelId || !config.allowedChannels.includes(channelId)) {
-        return '此频道不允许执行 Minecraft 命令'
-      }
-    }
-
-    if (requireAdmin) {
-      // adminUsers 列表 或 authority >= adminAuthority，满足其一即可
-      const inAdminList = userId ? config.adminUsers.includes(userId) : false
-      const hasAuth = authority >= config.adminAuthority
-      if (!inAdminList && !hasAuth) {
-        return '你没有权限执行此管理命令'
-      }
-    } else {
-      // allowedUsers 为空则不限制；非空时需在列表中 或 authority 满足要求
-      if (config.allowedUsers.length > 0) {
-        const inUserList = userId ? config.allowedUsers.includes(userId) : false
-        const hasAuth = authority >= config.userAuthority
-        if (!inUserList && !hasAuth) {
-          return '你没有权限执行此命令'
-        }
-      }
-    }
-
-    return undefined
-  }
-
   ctx.command('mc', 'Minecraft 服务器管理')
     .usage('通过子命令管理 Minecraft 服务器：mc.list / mc.say / mc.tp / mc.give / mc.weather / mc.time / mc.cmd')
 
-  ctx.command('mc.list', '查看在线玩家')
+  ctx.command('mc.list', '查看在线玩家', { authority: config.userAuthority })
     .alias('mc.在线')
     .action(async ({ session }) => {
       if (!session) return
-      const denied = checkPermission(session.channelId, session.userId, extractAuthority(session.user), false)
-      if (denied) return denied
       try {
         const result = await runCommand('list')
         return result || '命令已执行，但服务器未返回数据'
@@ -129,12 +75,10 @@ export function apply(ctx: Context, config: Config) {
       }
     })
 
-  ctx.command('mc.say <message:text>', '在服务器中广播消息')
+  ctx.command('mc.say <message:text>', '在服务器中广播消息', { authority: config.userAuthority })
     .alias('mc.广播')
     .action(async ({ session }, message) => {
       if (!session) return
-      const denied = checkPermission(session.channelId, session.userId, extractAuthority(session.user), false)
-      if (denied) return denied
       if (!message) return '请输入要广播的消息'
       try {
         const result = await runCommand(`say ${message}`)
@@ -145,13 +89,11 @@ export function apply(ctx: Context, config: Config) {
       }
     })
 
-  ctx.command('mc.tp <player:string> <target:text>', '传送玩家到目标位置或玩家')
+  ctx.command('mc.tp <player:string> <target:text>', '传送玩家到目标位置或玩家', { authority: config.adminAuthority })
     .alias('mc.传送')
     .usage('示例:\n  mc.tp Steve Alex        — 将 Steve 传送到 Alex\n  mc.tp Steve 100 64 200  — 将 Steve 传送到坐标')
     .action(async ({ session }, player, target) => {
       if (!session) return
-      const denied = checkPermission(session.channelId, session.userId, extractAuthority(session.user), true)
-      if (denied) return denied
       if (!player || !target) return '用法: mc.tp <玩家名> <目标玩家或坐标>'
       try {
         const result = await runCommand(`tp ${player} ${target}`)
@@ -162,13 +104,11 @@ export function apply(ctx: Context, config: Config) {
       }
     })
 
-  ctx.command('mc.give <player:string> <item:string> [count:number]', '给予玩家物品')
+  ctx.command('mc.give <player:string> <item:string> [count:number]', '给予玩家物品', { authority: config.adminAuthority })
     .alias('mc.给予')
     .usage('示例: mc.give Steve diamond 64')
     .action(async ({ session }, player, item, count) => {
       if (!session) return
-      const denied = checkPermission(session.channelId, session.userId, extractAuthority(session.user), true)
-      if (denied) return denied
       if (!player || !item) return '用法: mc.give <玩家名> <物品ID> [数量]'
       const amount = count ?? 1
       try {
@@ -180,13 +120,11 @@ export function apply(ctx: Context, config: Config) {
       }
     })
 
-  ctx.command('mc.weather <type:string>', '设置服务器天气')
+  ctx.command('mc.weather <type:string>', '设置服务器天气', { authority: config.adminAuthority })
     .alias('mc.天气')
     .usage('可选值: clear (晴天) / rain (雨天) / thunder (雷暴)')
     .action(async ({ session }, type) => {
       if (!session) return
-      const denied = checkPermission(session.channelId, session.userId, extractAuthority(session.user), true)
-      if (denied) return denied
       if (!type) return '请指定天气类型: clear / rain / thunder'
       const validTypes = ['clear', 'rain', 'thunder']
       if (!validTypes.includes(type.toLowerCase())) {
@@ -201,13 +139,11 @@ export function apply(ctx: Context, config: Config) {
       }
     })
 
-  ctx.command('mc.time <value:string>', '设置服务器时间')
+  ctx.command('mc.time <value:string>', '设置服务器时间', { authority: config.adminAuthority })
     .alias('mc.时间')
     .usage('可选值: day / night / noon / midnight / 游戏刻数字 (如 6000)')
     .action(async ({ session }, value) => {
       if (!session) return
-      const denied = checkPermission(session.channelId, session.userId, extractAuthority(session.user), true)
-      if (denied) return denied
       if (!value) return '请指定时间值: day / night / noon / midnight / 游戏刻数字'
       const presets = ['day', 'night', 'noon', 'midnight']
       const isPreset = presets.includes(value.toLowerCase())
@@ -224,13 +160,11 @@ export function apply(ctx: Context, config: Config) {
       }
     })
 
-  ctx.command('mc.cmd <command:text>', '执行任意 Minecraft 服务器命令')
+  ctx.command('mc.cmd <command:text>', '执行任意 Minecraft 服务器命令', { authority: config.adminAuthority })
     .alias('mc.命令')
     .usage('直接执行原始服务器命令，如: mc.cmd op Steve')
     .action(async ({ session }, command) => {
       if (!session) return
-      const denied = checkPermission(session.channelId, session.userId, extractAuthority(session.user), true)
-      if (denied) return denied
       if (!command) return '请输入要执行的命令'
       try {
         const result = await runCommand(command)

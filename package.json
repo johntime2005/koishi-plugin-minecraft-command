@@ -54,11 +54,8 @@
     "category": "gametool",
     "public": [
       "botId",
-      "allowedChannels",
-      "allowedUsers",
-      "adminUsers",
-      "adminAuthority",
-      "userAuthority"
+      "userAuthority",
+      "adminAuthority"
     ],
     "service": {
       "required": [
